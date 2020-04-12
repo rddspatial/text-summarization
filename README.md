@@ -92,5 +92,6 @@ Too scary indeed	0.16	4
 Once the sentences are ranked, top-k (30%) sentences are selected that contain most relevant (thematic) information. 
 
 The resultant summary:
-###Just felt another earthquake in Yokohama in Japan. I felt another earthquake yesterday.
+
+Just felt another earthquake in Yokohama in Japan. I felt another earthquake yesterday.
 
