@@ -28,10 +28,16 @@ Examples:
 Example thread 1:
 
 Thread ID,Tweet ID,User name,Time,Content
+
 1,11,TID1,06/08/2015 2:23,I am feeling an earthquake at Tokyo. I felt another earthquake yesterday.
+
 1,12,TID2,06/08/2015 3:18,Everything will be alright.
+
 1,13,TID3,07/08/2015 7:22,Just felt another earthquake in Yokohama in Japan. It's scary when you experience it for the 1st few times!
+
 1,14,TID1,07/08/2015 7:44,Too scary indeed
+
+To generate the summary the following steps are followed.
 
 1.	Pre-processing and tokenization:
 
