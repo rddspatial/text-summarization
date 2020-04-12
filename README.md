@@ -21,14 +21,14 @@ on Twitter threads.
 ** Due to Twitter policy we could not publish the threads but
 the models can be deployed on any text dataset.
 
-In the following we explain how thematic summarization model works using toy examples.
+In the following we explain how thematic summarization model works using toy example.
 
 Examples:
 
 Example thread 1:
 
 Thread ID,Tweet ID,User name,Time,Content
-
+=====================================================
 1,11,TID1,06/08/2015 2:23,I am feeling an earthquake at Tokyo. I felt another earthquake yesterday.
 
 1,12,TID2,06/08/2015 3:18,Everything will be alright.
