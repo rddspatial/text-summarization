@@ -1,4 +1,4 @@
-# text-summarization
+# Extractive Text Summarization based on Thematic Frequency
 
 In this project we developed an extractive text summarization model 
 based on thematic frequency. To do that, we developed a number of 
@@ -13,8 +13,13 @@ guarantee if the embedding can capture the context of the disaster related
 terms which are critical to the emergency response operations, and thus 
 generating an effective summary. To investigate how thematic frequency-based 
 model performs, we compared the model with three other models 
-(a general term frequency-based model, a Glove model and a Word2Vec model). 
+(a general term frequency-based model, a Glove model and a Word2Vec model)
+on Twitter threads. 
 
+** Files start with def_def_* are the lexicons of different themes.
+** There are 4 summary samples added in the repository.
+** Due to Twitter policy we could not publish the threads but
+the models can be deployed on any text dataset.
 
 In the following we explain how thematic summarization model works using toy examples.
 
