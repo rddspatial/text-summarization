@@ -1,0 +1,175 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Dec 12 17:29:55 2019
+
+@author: Rahul.Deb.Das@ibm.com
+"""
+
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Dec  9 00:28:28 2019
+
+@author: Rahul
+"""
+
+import numpy as np
+import pandas as pd
+import nltk
+#nltk.download('punkt') # one time execution
+import re
+import math
+import csv
+from nltk.corpus import stopwords
+from nltk.tokenize import sent_tokenize, word_tokenize
+from sklearn.metrics.pairwise import cosine_similarity
+import networkx as nx
+from gensim.models import KeyedVectors, word2vec
+
+
+# function to remove stopwords
+def remove_stopwords(sen):
+    sen_new = " ".join([i for i in sen if i not in stop_words])
+    return sen_new
+
+
+
+
+stop_words = stopwords.words('english')
+
+#text_src='/Users/Rahul/Documents/Grices maxim/data/Tweet_convo manual data collection_1 to 200.csv'
+
+#df=pd.read_csv(text_src, sep=',')
+
+#split text into sentences
+sentences = []
+#for s in df['Content']:
+#  sentences.append(sent_tokenize(s))
+
+#flatten list
+#sentences = [y for x in sentences for y in x] # flatten list
+
+src='/Users/Rahul.Deb.Das@ibm.com/Documents/Grices maxim/data/Tweet_convo manual data collection_1 to 200_Test_2.csv'
+
+df=pd.read_csv(src, sep=',', encoding='ISO-8859-1')
+
+#print (df['Content'])
+# Extract word vectors
+word_embeddings = {}
+#src_glove='/Users/Rahul/Documents/Grices maxim/glove.6B/glove.6B.100d.txt'
+src_w2v='/Users/Rahul/Documents/Research/Kiran/crisisNLP_word2vec_model/crisisNLP_word_vector.bin'
+trgt_w2v_txt='/Users/Rahul/Documents/Research/Kiran/crisisNLP_word2vec_model/crisisNLP_word_vector.txt'
+
+#model = KeyedVectors.load_word2vec_format(src_w2v, binary=True)
+#model.save_word2vec_format(trgt_w2v_txt, binary=False)
+
+trgt='/Users/Rahul.Deb.Das@ibm.com/Documents/Research/Kiran/summary/crisisNLP_w2v_300_Test.csv'
+
+f = open(trgt_w2v_txt, encoding='utf-8')
+for line in f:
+    values = line.split()
+    word = values[0]
+    coefs = np.asarray(values[1:], dtype='float32')
+    word_embeddings[word] = coefs
+f.close()
+
+print ('word embeddings: ',len(word_embeddings))
+
+#text pre-processing
+
+row_list=list()
+thread_len=201 #number of the threads
+for i in range(thread_len):
+    sentences=list()
+    print (conv_i)
+    summary_list=list()
+    if (conv_i>0): #and i not in conv_problem_list
+            for conv_id, text in zip(df['Conv ID'], df['Content']):
+               # print ('c: ',conv_id)
+                if (conv_id==conv_i):
+                    print (text)
+                    text=text.replace('\x92',' ')
+                    text=text.replace('\x93',' ')
+                    text=text.replace('\x94',' ')
+                    text=text.replace('\x85',' ')
+                    text_list=sent_tokenize(text)
+                   # text_list_deep_copy=text_list.copy()
+                    for t in text_list:
+                        sentences.append(t)
+                    
+           # print (sentences) # print each conversation thread  
+            #flatten list
+           # sentences = [y for x in sentences for y in x]
+            # remove punctuations, numbers and special characters
+#            clean_sentences = pd.Series(sentences).str.replace("[^a-zA-Z]", " ")
+#            # remove stopwords from the sentences
+#            clean_sentences = [remove_stopwords(r.split()) for r in clean_sentences]
+#            # make alphabets lowercase
+#            clean_sentences = [s.lower() for s in clean_sentences]
+            
+       #     print (clean_sentences)
+            cutoff=0.3
+            threshold=int(math.ceil((len(sentences)*cutoff)))
+            # Extract word vectors
+        #    word_embeddings = {}
+        #    f = open('glove.6B.100d.txt', encoding='utf-8')
+        #    for line in f:
+        #        values = line.split()
+        #        word = values[0]
+        #        coefs = np.asarray(values[1:], dtype='float32')
+        #        word_embeddings[word] = coefs
+        #    f.close()
+            
+            #Now, let’s create vectors for our sentences. We will first fetch vectors (each of size 100 elements) 
+            #for the constituent words in a sentence 
+            #and then take mean/average of those vectors to arrive at a consolidated vector for the sentence.
+            sentence_vectors = []
+            for i in sentences:
+              if len(i) != 0:
+                v = sum([word_embeddings.get(w, np.zeros((300,))) for w in word_tokenize(i)])/(len(word_tokenize(i))+0.001) #v = sum([word_embeddings.get(w, np.zeros((300,))) for w in i.split()])/(len(i.split())+0.001)
+              else:
+                v = np.zeros((300,))
+              sentence_vectors.append(v)
+              
+              
+              
+            # similarity matrix
+            sim_mat = np.zeros([len(sentences), len(sentences)])
+            #initialize the matrix with cosine similarity scores.
+            for i in range(len(sentences)):
+              for j in range(len(sentences)):
+                if i != j:
+                  sim_mat[i][j] = cosine_similarity(sentence_vectors[i].reshape(1,300), sentence_vectors[j].reshape(1,300))[0,0]
+            
+            # PageRank 
+                             
+            nx_graph = nx.from_numpy_array(sim_mat)
+            scores = nx.pagerank(nx_graph, max_iter=100)
+                
+                #extract top-N sentences
+                
+            ranked_sentences = sorted(((scores[i],s) for i,s in enumerate(sentences)), reverse=True)
+                # Extract top 10 sentences as the summary
+            print ('TOP-K SENTENCES:')
+            print ('===================================================================')
+            for k in range(threshold):
+               # print (ranked_sentences)
+                print(ranked_sentences[k][1])
+                summary_list.append(ranked_sentences[k][1])
+            
+            summary=' '.join(summary_list)
+      
+            row=[conv_i,summary]
+            row_list.append(row)
+        
+header = ['Conv_ID','Summary']
+with open(trgt, 'wt') as f:
+    csv_writer = csv.writer(f)
+    csv_writer.writerow(header) 
+     
+    for record in row_list:
+        print(record)
+        csv_writer.writerow(record)
+            
+            

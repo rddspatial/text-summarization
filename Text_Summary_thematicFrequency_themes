@@ -1,0 +1,404 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Fri Dec 13 12:59:41 2019
+
+@author: Rahul
+"""
+
+
+from geotext import GeoText
+from nltk import pos_tag
+from nltk.tokenize import word_tokenize, sent_tokenize
+from nltk.stem import WordNetLemmatizer 
+import re
+import csv
+import spacy # https://spacy.io/usage/spacy-101
+import pandas as pd
+from nltk.corpus import stopwords
+import math
+from heapq import nlargest
+
+# Load English tokenizer, tagger, parser, NER and word vectors
+nlp = spacy.load("en")
+
+alphabets= "([A-Za-z])"
+prefixes = "(Mt|Mr|St|Mrs|Ms|Dr)[.]"
+suffixes = "(Inc|Ltd|Jr|Sr|Co)"
+starters = "(Mr|Mrs|Ms|Dr|He\s|She\s|It\s|They\s|Their\s|Our\s|We\s|But\s|However\s|That\s|This\s|Wherever)"
+acronyms = "([A-Z][.][A-Z][.](?:[A-Z][.])?)"
+websites = "[.](com|net|org|io|gov)"
+digits = "([0-9])"
+
+def split_into_sentences(text):
+    text = " " + text + "  "
+    text = text.replace("\n"," ")
+    text = re.sub(prefixes,"\\1<prd>",text)
+    text = re.sub(websites,"<prd>\\1",text)
+    if "Ph.D" in text: text = text.replace("Ph.D.","Ph<prd>D<prd>")
+    text = re.sub("\s" + alphabets + "[.] "," \\1<prd> ",text)
+    text = re.sub(acronyms+" "+starters,"\\1<stop> \\2",text)
+    text = re.sub(alphabets + "[.]" + alphabets + "[.]" + alphabets + "[.]","\\1<prd>\\2<prd>\\3<prd>",text)
+    text = re.sub(alphabets + "[.]" + alphabets + "[.]","\\1<prd>\\2<prd>",text)
+    text = re.sub(" "+suffixes+"[.] "+starters," \\1<stop> \\2",text)
+    text = re.sub(" "+suffixes+"[.]"," \\1<prd>",text)
+    text = re.sub(" " + alphabets + "[.]"," \\1<prd>",text)
+    text = re.sub(digits + "[.]" + digits,"\\1<prd>\\2",text)
+    if "”" in text: text = text.replace(".”","”.")
+    if "\"" in text: text = text.replace(".\"","\".")
+    if "!" in text: text = text.replace("!\"","\"!")
+    if "?" in text: text = text.replace("?\"","\"?")
+    text = text.replace(".",".<stop>")
+    text = text.replace("?","?<stop>")
+    text = text.replace("!","!<stop>")
+    text = text.replace("<prd>",".")
+    sentences = text.split("<stop>")
+    sentences = sentences[:-1]
+    sentences = [s.strip() for s in sentences]
+    return sentences
+
+
+def getPlaces(string):
+
+    #string = 'Great! Daly City. Just felt an #earthquake in San Francisco. Did anyone else feel it? @USGS says 3.7 M..I am from WB. we are going to Mumbay! I live in Sonarpur, Kolkata. We are actually from IBM, used to work in sonarpur. The office is located at Mies-van-der-rohe, Munich.'
+    #p=GeoText(string).country_mentions
+    
+    #print (p)
+    #item_list = list(p.items())
+    #print (item_list[0])
+    #place = GeoText(string)
+    
+    #print (place.countries)
+    #print (place.cities)
+    #
+    #sentences=sent_tokenize(string)
+    #word_pos_list = []
+    #for sent in sentences:
+    #    print (sent)
+    #    word_pos=pos_tag(word_tokenize(sent))
+    ##    print (word_pos)
+    #    word_pos_list.append(word_pos)
+    #print (word_pos_list)
+    #
+    #for entry in word_pos:
+    #    print (entry[1])
+    spatial_preposition = ['at', 'in', 'near', 'to', 'on', 'towards', 'toward']
+    place_set = set()
+    final_place_set = set()
+    #string = string.lower()
+#    string = re.sub(r'[^\w\s\.]',' ',string)
+#    print(string)
+    for sent in split_into_sentences(string):
+        temp_place_set = set()
+        final_temp_place_set = set()
+        s=''
+        index = 0
+        
+ # spacy NER implementation       
+        spacy_nlp = spacy.load('en')
+        document = spacy_nlp(sent)
+
+        #print('Original Sentence: %s' % (sent))
+
+        for element in document.ents:
+            print('Type: %s, Value: %s' % (element.label_, element))
+            if (element.label_=='GPE') or (element.label_=='LOC'):
+                place_set.add(str(element).lower())
+
+# GeoText implementation from geotext
+
+        place = GeoText(sent)
+        
+        print (sent)
+        string = re.sub(r'[^\w\s\.\,\;\?\!]',' ',string)
+        sent = sent.replace('Mt.', 'Mt')
+        sent = sent.replace('mt.', 'mt')
+        sent = sent.replace('St.', 'St')
+        sent = sent.replace('st.', 'st')
+        for country in place.countries:
+            place_set.add(country.lower())
+        for city in place.cities:
+            place_set.add(city.lower())   
+    
+# Rule-base implementation
+            
+        word_pos = pos_tag(word_tokenize(sent))
+        for entry in word_pos:
+     #       print (entry[0]+': index: ',index)
+            s=''
+      #      if (entry[1]=='IN') or (entry[1]=='TO'):
+            if entry[0].lower() in spatial_preposition:   
+                for i in range((index+1), len(word_pos)):
+                   
+                    if (word_pos[i][1]=='NNP') or (word_pos[i][1]=='NN'):
+                        s=s+word_pos[i][0]+' '
+                    else:
+                        if (len(s)>0):
+                            
+                            temp_place_set.add(s.strip())
+                        break
+            
+                
+                            
+            index = index + 1
+            
+      #  print (temp_place_set)
+ # scanning in the individual sentence        
+        for entry in temp_place_set:
+            result = re.search(entry,sent)
+            if result:
+               final_temp_place_set.add(entry.lower())
+            else:
+                for i in word_tokenize(entry):
+                    final_temp_place_set.add(i.lower())
+                
+               
+#        print ('final: ',final_temp_place_set)
+ # scanning in the entire text (multiple sentences)       
+#        for entry in temp_place_set:
+#            result = re.search(entry,string)
+#            if result:
+#               final_place_set.add(entry.lower())
+#            else:
+#                for i in word_tokenize(entry):
+#                    final_place_set.add(i.lower())
+        
+        for place in final_temp_place_set:
+            place_set.add(place.lower())
+        
+ #   print ('place found: ', place_set)
+                        
+    return place_set          
+
+def getTimes(string):
+    
+    doc=nlp(string)
+    timeset=set()
+    for entity in doc.ents:
+            if (entity.label_=='DATE'):
+                print(entity.text, entity.label_)   
+                timeset.add(entity.text.lower())
+                
+    return timeset
+
+
+def getCasualty(string):
+    
+    casualty_set=set()
+    lemmatizer = WordNetLemmatizer()
+    casulaty_src='/Users/Rahul/Documents/Research/Kiran/lexicon_wordnet_final/def_def_casualty or injury report.csv'
+    with open(casulaty_src) as f:
+        content = f.readlines()
+    # you may also want to remove whitespace characters like `\n` at the end of each line
+    content = [x.strip() for x in content]
+    for i in content:
+        i_lemma=lemmatizer.lemmatize(i.lower())
+        casualty_set.add(i_lemma)
+    return casualty_set
+
+def getHelp(string):
+    
+    casualty_set=set()
+    lemmatizer = WordNetLemmatizer()
+    t_src='/Users/Rahul/Documents/Research/Kiran/lexicon_wordnet_final/def_def_helpcalls.csv'
+    with open(t_src) as f:
+        content = f.readlines()
+    # you may also want to remove whitespace characters like `\n` at the end of each line
+    content = [x.strip() for x in content]
+    for i in content:
+        i_lemma=lemmatizer.lemmatize(i.lower())
+        casualty_set.add(i_lemma)
+    return casualty_set
+
+def getIntensity(string):
+    
+    casualty_set=set()
+    lemmatizer = WordNetLemmatizer()
+    t_src='/Users/Rahul/Documents/Research/Kiran/lexicon_wordnet_final/def_def_intensity.csv'
+    with open(t_src) as f:
+        content = f.readlines()
+    # you may also want to remove whitespace characters like `\n` at the end of each line
+    content = [x.strip() for x in content]
+    for i in content:
+        i_lemma=lemmatizer.lemmatize(i.lower())
+        casualty_set.add(i_lemma)
+    return casualty_set
+
+def getReport(string):
+    
+    casualty_set=set()
+    lemmatizer = WordNetLemmatizer()
+    t_src='/Users/Rahul/Documents/Research/Kiran/lexicon_wordnet_final/def_def_report the event.csv'
+    with open(t_src) as f:
+        content = f.readlines()
+    # you may also want to remove whitespace characters like `\n` at the end of each line
+    content = [x.strip() for x in content]
+    for i in content:
+        i_lemma=lemmatizer.lemmatize(i.lower())
+        casualty_set.add(i_lemma)
+    return casualty_set
+
+src = '/Users/Rahul/Documents/Grices maxim/data/Tweet_convo manual data collection_1 to 200_Test_2.csv'
+trgt='/Users/Rahul/Documents/Research/Kiran/summary/word_freq_place_theme_2_Test.csv'
+df = pd.read_csv(src, sep=',', encoding='ISO-8859-1')
+
+   
+lemmatizer = WordNetLemmatizer() 
+row_list=list()       
+for i in range(2):
+    sentences=list()
+    test=''
+    sentences=list()
+    summary_list=list()
+    intensity_set_f=set()
+    help_set_f=set()
+    report_set_f=set()
+    casualty_set_f=set()
+    place_set_f=set()
+    time_set_f=set()
+    
+    print (i)
+    if (i>0):
+        for conv_id, text in zip(df['Conv ID'], df['Content']):
+           # print ('c: ',conv_id)
+            if (conv_id==i):
+               # print ('text: ',text)
+               # text=text.lower()
+                text=text.replace('\x92',' ')
+                text=text.replace('\x93',' ')
+                text=text.replace('\x94',' ')
+                text=text.replace('\x85',' ')
+                sentences.append(text)
+        if sentences[-1] != '.':
+            sentences.append('.')
+        test = ' '.join(sentences)            
+        stopwordlist = stopwords.words('english')
+        word_freq = {}
+        for sent in sent_tokenize(test):
+            sent=sent.lower()
+            place_set=getPlaces(sent)
+            time_set=getTimes(sent)
+            help_set=getHelp(sent)
+            intensity_set=getIntensity(sent)
+            report_set=getReport(sent)
+            casualty_set=getCasualty(sent)
+            sent = re.sub(r'[^\w\s]','',sent)
+            
+           
+            for word in word_tokenize(sent):
+                word=word.lower()
+                word_lemma=lemmatizer.lemmatize(word)
+                if word not in stopwordlist:
+                    if word not in word_freq:
+                        word_freq[word] = 1
+                    else:
+                        word_freq[word] += 1
+                if word.lower() in place_set and word.lower() in word_freq:
+                    word_freq[word] += 10
+                    place_set_f.add(word)
+                if word.lower() in place_set and word.lower() not in word_freq:
+                    word_freq[word] = 10
+                    place_set_f.add(word)
+                if word.lower() in time_set and word.lower() in word_freq:
+                    word_freq[word] += 10
+                    time_set_f.add(word)
+                if word.lower() in time_set and word.lower() not in word_freq:
+                    word_freq[word] = 10
+                    time_set_f.add(word)
+                if word_lemma.lower() in intensity_set and word_lemma.lower() in word_freq:
+                    word_freq[word] += 5
+                    intensity_set_f.add(word)
+                if word_lemma.lower() in intensity_set and word_lemma.lower() not in word_freq:
+                    word_freq[word] = 5
+                    intensity_set_f.add(word)
+                if word_lemma.lower() in help_set and word_lemma.lower() in word_freq:
+                    word_freq[word] += 10
+                    help_set_f.add(word)
+                if word_lemma.lower() in help_set and word_lemma.lower() not in word_freq:
+                    word_freq[word] = 10
+                    help_set_f.add(word)
+                if word_lemma.lower() in report_set and word_lemma.lower() in word_freq:
+                    word_freq[word] += 5
+                    report_set_f.add(word)
+                if word_lemma.lower() in report_set and word_lemma.lower() not in word_freq:
+                    word_freq[word] = 5
+                    report_set_f.add(word)
+                if word_lemma.lower() in casualty_set and word_lemma.lower() in word_freq:
+                    word_freq[word] += 5
+                    casualty_set_f.add(word)
+                if word_lemma.lower() in casualty_set and word_lemma.lower() not in word_freq:
+                    word_freq[word] = 5
+                    casualty_set_f.add(word)
+                    
+        print (word_freq)
+        print ('SPATIAL THEME SET: ',place_set_f)
+        print ('TEMPORAL THEME SET: ',time_set_f)
+        print ('INTENSITY THEME SET: ',intensity_set_f)
+        print ('HELP THEME SET: ',help_set_f)
+        print ('REPORT THEME SET: ',report_set_f)
+        print ('CASUALTY THEME SET: ',casualty_set_f)
+        
+        
+        num_sent=(sent_tokenize(test))
+        cutoff=0.3
+        threshold=int(math.ceil(len(num_sent)*cutoff))
+        print ('THRESHOLD: ',threshold, ', # of sentences: ',len(num_sent))
+        
+        maximum_freq = max (word_freq.values())
+        max_word = max (word_freq, key = lambda key: word_freq[key])
+        
+        #print ('maximum frequent word is: ',max_word,' with frequency count =', maximum_freq)
+        
+        top_k = nlargest (2, word_freq, key = word_freq.get)
+        max_word = str(top_k[0])
+        max_word_value = word_freq[max_word]
+        print ('MAX_WORD: ', max_word, ': ', word_freq[max_word])
+        #print (word_freq[max_word])
+        
+        for entry in word_freq:
+        #    print (entry, ': ', word_freq[entry], ': ',  max_word, ': ', max_word_value)
+            word_freq[entry] = (word_freq[entry]/max_word_value)
+            
+        print (word_freq)
+        
+        sent_freq = {}
+        
+        for sent in sent_tokenize(test):
+            sent_score = 0
+            sent=sent.lower()
+         #   print ('Queried sentence: ',sent)
+            for word in word_tokenize (sent):
+         #       print ('word scanning: ',word)
+                if word in word_freq:
+          #          print (word,': ',word_freq[word])
+                    sent_score = sent_score + word_freq[word]
+        #    print (sent_score)
+            sent_freq[sent] = sent_score
+       #     print (sent,': ',sent_score)
+            
+        print ('Input text: ', test)
+        
+        
+        for entry, value in sent_freq.items():
+            print (entry,': ',value)
+        top_k = nlargest (threshold, sent_freq, key = sent_freq.get)
+        
+        print ('Summary: ')
+        for entry in top_k:
+            print (entry)
+            summary_list.append(entry)
+            
+        summary=' '.join(summary_list)
+      
+        row=[i,summary]
+        row_list.append(row)
+        
+header = ['Conv_ID','Summary']
+with open(trgt, 'wt') as f:
+    csv_writer = csv.writer(f)
+    csv_writer.writerow(header) 
+     
+    for record in row_list:
+        print(record)
+        csv_writer.writerow(record)
+                
