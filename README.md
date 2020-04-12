@@ -79,13 +79,23 @@ Thus, the aggregate score for the sentence is 0.66+0.11+1.0+0.61+0.61=3 (approx)
 
 Likewise, we compute the score for all the sentences in the above thread and rank them based on their scores as follows.
 
+---------------------------------------------------
 Sentence	Score	Rank
+
+---------------------------------------------------
 I am feeling an earthquake at Tokyo.	1.94	3
+
 I felt another earthquake yesterday.	2.38	2
+
 Everything will be alright.	0.11	6
+
 Just felt another earthquake in Yokohama in Japan.	3.0	1
+
 It's scary when you experience it for the 1st few times!	0.55	5
+
 Too scary indeed	0.16	4
+
+-------------------------------------------------------
 
 5.	Summary generation:
 
