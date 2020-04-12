@@ -16,8 +16,12 @@ model performs, we compared the model with three other models
 (a general term frequency-based model, a Glove model and a Word2Vec model)
 on Twitter threads. 
 
+Note:
+
 ** Files start with def_def_* are the lexicons of different themes.
+
 ** There are 4 summary samples added in the repository.
+
 ** Due to Twitter policy we could not publish the threads but
 the models can be deployed on any text dataset.
 
@@ -87,5 +91,6 @@ Too scary indeed	0.16	4
 
 Once the sentences are ranked, top-k (30%) sentences are selected that contain most relevant (thematic) information. 
 
-Just felt another earthquake in Yokohama in Japan. I felt another earthquake yesterday.
+The resultant summary:
+###Just felt another earthquake in Yokohama in Japan. I felt another earthquake yesterday.
 
