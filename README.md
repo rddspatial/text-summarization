@@ -27,6 +27,7 @@ Examples:
 
 Example thread 1:
 
+----------------------------------------------------------
 Thread ID,Tweet ID,User name,Time,Content
 
 -----------------------------------------------------------
@@ -38,6 +39,7 @@ Thread ID,Tweet ID,User name,Time,Content
 
 1,14,TID1,07/08/2015 7:44,Too scary indeed
 
+----------------------------------------------------------
 To generate the summary the following steps are followed.
 
 1.	Pre-processing and tokenization:
