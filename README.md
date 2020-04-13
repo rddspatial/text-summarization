@@ -19,6 +19,11 @@ on Twitter threads.
 Note:
 
 ** Files start with def_def_* are the lexicons of different themes.
+To develop the lexicons we used WordNet. First we defined a number of
+seed words for each theme. Then we expanded our list by adding terms 
+from the related synsets from the WordNet in recursive mnanner. 
+For every word in a given synset we looked for the same word or
+its nearby word (in terms of its semantics) to other synsets.
 
 ** There are 4 summary samples added in the repository.
 
