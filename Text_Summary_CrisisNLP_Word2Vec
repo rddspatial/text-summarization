@@ -57,7 +57,7 @@ trgt_w2v_txt='/Users/Rahul/Documents/Research/Kiran/crisisNLP_word2vec_model/cri
 #model = KeyedVectors.load_word2vec_format(src_w2v, binary=True)
 #model.save_word2vec_format(trgt_w2v_txt, binary=False)
 
-trgt='/Users/Rahul.Deb.Das@ibm.com/Documents/Research/Kiran/summary/crisisNLP_w2v_300_Test.csv'
+trgt='/Users/Documents/Research/Kiran/summary/crisisNLP_w2v_300_Test.csv'
 
 f = open(trgt_w2v_txt, encoding='utf-8')
 for line in f:
